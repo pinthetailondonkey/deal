@@ -111,6 +111,25 @@ export function bundleHistory(title) {
   return title.hops;
 }
 
+// The stranger's look: everything a buyer needs to check the paper, and
+// nothing that changes hands. A show paper is read, checked and dropped —
+// it never becomes a title here. The holder is what the buyer compares
+// against the seller's tap code.
+export function inspectTitle(bundle) {
+  if (!bundle || !Array.isArray(bundle.hops)) {
+    return { ok: false, reason: 'not deal paperwork' };
+  }
+  const chain = verifyHopChain(bundle.hops);
+  if (!chain.ok) return { ok: false, reason: chain.reason };
+  return {
+    ok: true,
+    name: String(bundle.name || ''),
+    itemId: String(bundle.itemId || ''),
+    holder: chain.tip.body.to,
+    lines: bundle.hops.length,
+  };
+}
+
 export { hopHash, verifyHop, verifyHopChain };
 
 // The owner's code is the identity itself in hex: say it back to a phone

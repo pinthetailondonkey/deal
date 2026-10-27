@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { bytesToHex, hexToBytes } from 'deal-engine/src/canonical.js';
 import { generateKey } from 'deal-engine/src/keys.js';
 import {
+  bundleFor,
   decodeCode,
   encodeCode,
   identityCodeOf,
   keysFromIdentityCode,
+  inspectTitle,
   mintTitle,
   papersCodeOf,
   receiveTitle,
@@ -62,6 +64,11 @@ export default function App() {
   const [sellCode, setSellCode] = useState('');
   const [receiveCode, setReceiveCode] = useState('');
   const [receiveError, setReceiveError] = useState('');
+  const [lookOpen, setLookOpen] = useState(false);
+  const [lookCode, setLookCode] = useState('');
+  const [lookResult, setLookResult] = useState(null);
+  const [showFor, setShowFor] = useState(null);
+  const [showPaper, setShowPaper] = useState('');
   const [flash, setFlash] = useState('');
   const [backupOpen, setBackupOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
@@ -141,6 +148,21 @@ export default function App() {
     }
   };
 
+  const look = (event) => {
+    event.preventDefault();
+    setLookResult(null);
+    try {
+      setLookResult({ ...inspectTitle(decodeCode(lookCode)), looked: true });
+    } catch (error) {
+      setLookResult({ ok: false, reason: error.message, looked: true });
+    }
+  };
+
+  const show = (title) => {
+    setShowPaper(encodeCode(bundleFor(title)));
+    setShowFor(title.name);
+  };
+
   const restore = (event) => {
     event.preventDefault();
     setRestoreError('');
@@ -200,6 +222,7 @@ export default function App() {
                   <p className="fact verified">Real owner ✓</p>
                   <p className="fact">History: {title.hops.length} {title.hops.length === 1 ? 'line' : 'lines'}, clean</p>
                   <button type="button" className="ghost" onClick={() => sell(title)}>Sell → tap paper</button>
+                  <button type="button" className="ghost" onClick={() => show(title)}>Show → show paper</button>
                 </>
               ) : state.ok ? (
                 <p className="fact">Held by someone else — the history stays readable here</p>
@@ -228,6 +251,34 @@ export default function App() {
           <button type="button" className="ghost" onClick={() => setSellFor(null)}>Done</button>
         </section>
       )}
+
+      {showFor && (
+        <section className="panel" aria-label="Show a title">
+          <h3>Show “{showFor}”</h3>
+          <p className="fact">Show paper ready — the buyer pastes it and reads the title. It owns nothing, buys nothing.</p>
+          <Textarea readOnly code={showPaper} onCopy={() => showCode(showPaper)} rows={8} />
+          <button type="button" className="ghost" onClick={() => setShowFor(null)}>Done</button>
+        </section>
+      )}
+
+      <section className="panel" aria-label="Look at a title">
+        <h3>Look at a title</h3>
+        <p className="fact">Before you buy — the seller's show paper tells you what you would be holding. Looking owns nothing and saves nothing.</p>
+        <form onSubmit={look}>
+          <Textarea value={lookCode} onChange={setLookCode} rows={6} placeholder="Paste the show paper" />
+          <button type="submit" disabled={!lookCode.trim()}>Check the paper</button>
+        </form>
+        {lookResult?.looked && (lookResult.ok ? (
+          <>
+            <p className="fact verified">Real paper ✓</p>
+            <p className="fact">{lookResult.name} — History: {lookResult.lines} {lookResult.lines === 1 ? 'line' : 'lines'}, clean</p>
+            <p className="fact">Holder: <code>{lookResult.holder}</code></p>
+            <p className="fact">Check that holder against the seller's tap code. Same code, same person — then it is safe to buy.</p>
+          </>
+        ) : (
+          <p className="fact error">This paper does not check ({lookResult.reason}). Do not buy on it.</p>
+        ))}
+      </section>
 
       <section className="panel" aria-label="Receive">
         <h3>Receive a title</h3>

@@ -1,13 +1,15 @@
 // Deal selftest: the full tap round-trip through the app's own paperwork
-// library, on two simulated phones. Mint → sell → receive → re-sell, plus
-// the refusals that must refuse. Exit 1 on any failure.
+// library, on two simulated phones. Mint → sell → receive → re-sell → the
+// stranger's look, plus the refusals that must refuse. Exit 1 on any failure.
 import assert from 'node:assert/strict';
 import { generateKey, keyPairFromSeed } from 'deal-engine/src/keys.js';
 import { bytesToHex } from 'deal-engine/src/canonical.js';
 import {
+  bundleFor,
   decodeCode,
   encodeCode,
   identityCodeOf,
+  inspectTitle,
   keysFromIdentityCode,
   mintTitle,
   papersCodeOf,
@@ -84,4 +86,18 @@ assert.equal(titleMine(restoredKeys, restoredTitle).mine, true, 'a restored owne
 assert.equal(resold.hops.length, 3, 'history rides the papers, unbroken');
 assert.throws(() => keysFromIdentityCode('1234'));
 
-console.log('selftest: 8/8 — mint, tap, resale, transfers, restore all hold');
+// 9. the stranger's look: before buying, pasting the show paper reads the
+// title and adopts nothing — no store, no key, no name of the looker
+const showPaper = encodeCode(bundleFor(camera));
+const seen = inspectTitle(JSON.parse(atob(showPaper)));
+assert.equal(seen.ok, true, 'the real paper checks for a stranger');
+assert.equal(seen.holder, alice.pk, 'the look names alice as the holder');
+assert.equal(seen.lines, 1, 'the look counts the history');
+assert.equal(inspectTitle(null).ok, false, 'an empty look reads nothing');
+assert.equal(inspectTitle({}).ok, false, 'a shapeless look reads nothing');
+
+// 10. the forged paper from cell 6 fails the look too — the chain check is
+// the same engine wall whether you are adopting or just reading
+assert.equal(inspectTitle(JSON.parse(atob(forgedPaper))).ok, false, 'a forged paper fails the look');
+
+console.log('selftest: 10/10 — mint, tap, resale, look, transfers, restore all hold');
