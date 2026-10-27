@@ -6,9 +6,11 @@ the app's engine pin holds at 9e3bb43 by founder ruling until the
 post-purge review settles. This doc is the one-day job's blueprint, so
 when the pin bump is ruled the wiring is a day, not a design session.
 
-Written to ADAPT to the pending attack round on stolen.js — the screens
-below do not change shape if a finding reworks engine internals; only
-the named calls would move (see "What a finding could change").
+Written to ADAPT to the attack round on stolen.js (done 2026-10-27
+night — findings and their landings in their own section below) — the
+screens below do not change shape if a finding reworks engine
+internals; only the named calls would move (see "What a finding could
+change").
 
 ## Where a flag comes from
 
@@ -94,8 +96,48 @@ the named calls would move (see "What a finding could change").
 - A finding that reworks `stolenStatus` ordering: the screens read only
   "open vs resolved, verdict, history" — ordering is engine business.
 
+## Findings from the attack round (2026-10-27 night) — and where they land
+
+1. **Look printed "clean" without consulting stolen state.** True at this
+   pin, and it cannot be fixed with a consultation tonight: stolen.js
+   does not exist at the pinned engine (8870f72 > 9e3bb43). FIXED
+   APP-SIDE same night: the Look now claims exactly what it checked —
+   "every signature checks" — and never prints "clean". The word
+   "clean" is a claim only a stolen check can back.
+   The TITLE WALL card still reads "History: N lines, clean" — that is
+   the founder-locked surface, not this lane's to reword. Queued for the
+   pin-bump day: either the wall card consults flag state then, or the
+   founder rewords the lock. Blocked on stolen state entirely at this
+   pin, no claim can be added to any screen.
+2. **Arbiter authority is caller-asserted.** HARD RULE for the wiring
+   day, now in the plan: an arbiter key is admitted through the
+   READER'S OWN registry — a device-local list of arbiter keys the
+   owner trusts, present-or-absent, starting EMPTY — never through
+   `entry.arbiterKeys` off a pasted paper. A pasted resolution whose
+   arbiter is not in the registry renders as what it is: "a claim of
+   arbiter clearance, not proven here" — it cannot carry a headline.
+   Self-clearing is structurally impossible under that rule. Engine
+   side, someday: admission keyed through the rotation/key timeline
+   (standing.js pattern) so the trust anchor is signed history, not a
+   device list.
+3. **A future-dated filer withdrawal can bury an arbiter's cleared.**
+   Real: `stolenStatus` picks the headline by self-claimed `at`, and
+   `verifyStolenResolution` never validates it. Engine fix QUEUED for
+   the pin-bump day, walking the rule standing.js already learned:
+   future-dated resolutions confer nothing on the observer's clock,
+   `at` is validated at verify, and the headline follows signed facts
+   ordered on the observer's clock — never self-claimed time.
+4–7. Clean negatives, one false worry withdrawn by the tester
+   (duplicate-flip replay dies at 'prior'), QR clean, fork blindness
+   and Look's attacker-supplied NAME restate known engine limits —
+   the name rides a verified panel and only the holder comparison
+   defends; the someday fix is the checkpoint machinery.
+
 ## Pin-bump day mechanics (so it really is one day)
 
+0. Commit 0 (engine): the finding-3 fix — future-dated resolutions
+   confer nothing, `at` validated at verify, observer-clock headline.
+   Engine tests extended for the burial attack, green.
 1. Bump `deal/package.json` engine ref 9e3bb43 → the ruled head; npm
    install; engine tests re-run from node_modules (106/106 expected).
 2. Commit 1: the pin bump. Nothing else in it.
