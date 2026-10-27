@@ -1,0 +1,108 @@
+:root {
+  color-scheme: dark;
+  --bg: #121417;
+  --surface: #1b1e23;
+  --ink: #f2f0ec;
+  --ink-mute: #9aa1ab;
+  --line: #2a2f36;
+  --good: #5dd39e;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.45 system-ui, -apple-system, sans-serif;
+}
+
+.screen {
+  padding-block: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-bottom));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: 0.04em;
+}
+
+.tagline {
+  margin: 4px 0 0;
+  color: var(--ink-mute);
+  font-size: 13px;
+}
+
+.mint {
+  display: flex;
+  gap: 8px;
+  margin: 20px 0;
+}
+
+.mint input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.mint button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--bg);
+  font: inherit;
+  font-weight: 600;
+}
+
+.mint button:disabled {
+  opacity: 0.4;
+}
+
+.wall {
+  display: grid;
+  gap: 10px;
+}
+
+.card {
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.card h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+
+.fact {
+  margin: 2px 0;
+  font-size: 13px;
+  color: var(--ink-mute);
+}
+
+.verified {
+  color: var(--good);
+  font-weight: 600;
+}
+
+.id {
+  margin: 8px 0 0;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ink-mute);
+}
+
+.foot {
+  margin-top: 28px;
+  color: var(--ink-mute);
+  font-size: 12px;
+}

@@ -1,0 +1,20 @@
+{
+  "name": "deal",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Deal — a car title for everything, moved by tapping two phones.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test node_modules/deal-engine/test/"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "deal-engine": "github:pinthetailondonkey/deal-engine#9e3bb43df8e60da79cb1765c3c5501f1d580d3d8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.4.19"
+  }
+}
