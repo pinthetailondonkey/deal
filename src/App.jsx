@@ -348,7 +348,7 @@ export default function App() {
         {lookResult?.looked && (lookResult.ok ? (
           <>
             <p className="fact verified">Real paper ✓</p>
-            <p className="fact">{lookResult.name} — History: {lookResult.lines} {lookResult.lines === 1 ? 'line' : 'lines'}, clean</p>
+            <p className="fact">{lookResult.name} — History: {lookResult.lines} {lookResult.lines === 1 ? 'line' : 'lines'} — every signature checks.</p>
             <p className="fact">Holder: <code>{lookResult.holder}</code></p>
             <p className="fact">Check that holder against the seller's tap code. Same code, same person — then it is safe to buy.</p>
           </>
