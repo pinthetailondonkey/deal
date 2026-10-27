@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { bytesToHex, hexToBytes } from 'deal-engine/src/canonical.js';
 import { generateKey } from 'deal-engine/src/keys.js';
 import {
@@ -16,6 +16,7 @@ import {
   titleMine,
   titleOwner,
 } from './lib/paper.js';
+import { buildQr } from './lib/qr.js';
 
 // Deal v0 — the locked human surface: every title reads "Real owner,
 // clean history." One master key lives on this device; the engine derives
@@ -192,6 +193,7 @@ export default function App() {
           Your tap code {flash && <span className="flash"> · {flash}</span>}
         </p>
         <Textarea readOnly code={keys.pk} onCopy={() => showCode(keys.pk)} rows={2} />
+        <Qr text={keys.pk} />
       </header>
 
       <form className="mint" onSubmit={mint}>
@@ -246,6 +248,7 @@ export default function App() {
             <>
               <p className="fact">Sell paper ready — the buyer pastes this:</p>
               <Textarea readOnly code={sellCode} onCopy={() => showCode(sellCode)} rows={6} />
+              <Qr text={sellCode} />
             </>
           )}
           <button type="button" className="ghost" onClick={() => setSellFor(null)}>Done</button>
@@ -257,6 +260,7 @@ export default function App() {
           <h3>Show “{showFor}”</h3>
           <p className="fact">Show paper ready — the buyer pastes it and reads the title. It owns nothing, buys nothing.</p>
           <Textarea readOnly code={showPaper} onCopy={() => showCode(showPaper)} rows={8} />
+          <Qr text={showPaper} />
           <button type="button" className="ghost" onClick={() => setShowFor(null)}>Done</button>
         </section>
       )}
@@ -290,7 +294,7 @@ export default function App() {
       </section>
 
       <footer className="foot">
-        <p>Early build. Tap codes ride copy-paste today; NFC and QR replace the paste next.</p>
+        <p>Early build. Tap codes ride copy-paste and the camera today; NFC replaces the walk next.</p>
         <p className="backup-row">
           <button type="button" className="ghost" onClick={() => { setBackupOpen(!backupOpen); setRestoreOpen(false); }}>Owner's code</button>
           <button type="button" className="ghost" onClick={() => { setRestoreOpen(!restoreOpen); setBackupOpen(false); }}>Say it back to this phone</button>
@@ -320,6 +324,36 @@ export default function App() {
       </footer>
     </main>
   );
+}
+
+// A QR is the tap code a camera can read instead of the copy-paste walk.
+// The bytes are the same object either way; nothing here reads a scan.
+// A paper too large for one picture falls back to the paste, honestly.
+function Qr({ text }) {
+  const canvasRef = useRef(null);
+  const paper = useMemo(() => buildQr(text), [text]);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !paper) return;
+    const cell = 5;
+    const margin = 4;
+    const size = (paper.size + margin * 2) * cell;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#000000';
+    for (let row = 0; row < paper.size; row++) {
+      for (let col = 0; col < paper.size; col++) {
+        if (paper.isDark(row, col)) {
+          ctx.fillRect((col + margin) * cell, (row + margin) * cell, cell, cell);
+        }
+      }
+    }
+  }, [paper]);
+  if (!paper) return <p className="fact">Too much paper for one picture — the paste still carries it.</p>;
+  return <canvas className="qr" ref={canvasRef} aria-label="Sign the same paper for a camera" role="img" />;
 }
 
 function Textarea({ value, onChange, code, onCopy, rows, readOnly, placeholder }) {

@@ -8,11 +8,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test node_modules/deal-engine/test/ && node --test src/lib/noNetwork.test.js"
+    "test": "node --test node_modules/deal-engine/test/ && node --test src/lib/noNetwork.test.js src/lib/qr.test.js"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "deal-engine": "github:pinthetailondonkey/deal-engine#9e3bb43df8e60da79cb1765c3c5501f1d580d3d8",
+    "qrcode-generator": "^2.0.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "vite": "^5.4.19"

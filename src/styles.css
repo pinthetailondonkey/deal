@@ -145,6 +145,14 @@ body {
   color: var(--good);
 }
 
+.qr {
+  display: block;
+  margin-top: 10px;
+  width: min(240px, 100%);
+  height: auto;
+  border-radius: 10px;
+}
+
 .backup-row {
   display: flex;
   gap: 8px;
