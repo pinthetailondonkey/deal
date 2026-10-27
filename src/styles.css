@@ -6,6 +6,7 @@
   --ink-mute: #9aa1ab;
   --line: #2a2f36;
   --good: #5dd39e;
+  --bad: #e2837c;
 }
 
 body {
@@ -35,6 +36,47 @@ body {
   font-size: 13px;
 }
 
+.code-field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink-mute);
+  font: 12px ui-monospace, monospace;
+  resize: vertical;
+  word-break: break-all;
+}
+
+.ghost {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.panel {
+  margin-top: 20px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.panel h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.panel textarea {
+  margin-bottom: 8px;
+}
+
 .mint {
   display: flex;
   gap: 8px;
@@ -60,6 +102,7 @@ body {
   color: var(--bg);
   font: inherit;
   font-weight: 600;
+  cursor: pointer;
 }
 
 .mint button:disabled {
@@ -94,11 +137,12 @@ body {
   font-weight: 600;
 }
 
-.id {
-  margin: 8px 0 0;
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
-  color: var(--ink-mute);
+.error {
+  color: var(--bad);
+}
+
+.flash {
+  color: var(--good);
 }
 
 .foot {

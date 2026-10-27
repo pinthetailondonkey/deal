@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { bytesToHex, hexToBytes } from 'deal-engine/src/canonical.js';
-import { generateKey } from 'deal-engine/src/keys.js';
-import { coSignRecord, recordBody, signRecord, verifyRecord } from 'deal-engine/src/record.js';
+import { generateKey, publicKeyOf } from 'deal-engine/src/keys.js';
+import { decodeCode, encodeCode, mintTitle, receiveTitle, sellTitle, titleMine, titleOwner } from './lib/paper.js';
 
-// Deal v0 — the locked human surface, nothing else: every title reads
-// "Real owner, clean history." Two seats are held on this device for now:
-// the origin seat (signs the first line of a title) and the owner seat
-// (holds possession). The engine enforces buyer !== vendor at the byte
-// level, so the seats are distinct keys. Transfers between two phones
-// arrive next; their paperwork (hop chain) is already engine code.
+// Deal v0 — the locked human surface: every title reads "Real owner,
+// clean history." One master key lives on this device; the engine derives
+// per-item keys from it, and every transfer is a flip hop dual-signed by
+// giver and receiver. The tap (NFC/QR) will carry the same bytes these
+// copy-paste codes carry; the paper does not change shape.
 const KEYS_STORE = 'deal.identity.v0';
 const TITLES_STORE = 'deal.titles.v0';
 
@@ -16,14 +15,8 @@ function loadKeys() {
   try {
     const raw = localStorage.getItem(KEYS_STORE);
     if (raw) return JSON.parse(raw);
-    const owner = generateKey();
-    const origin = generateKey();
-    const keys = {
-      ownerSk: bytesToHex(owner.secretKey),
-      ownerPk: owner.publicKey,
-      originSk: bytesToHex(origin.secretKey),
-      originPk: origin.publicKey,
-    };
+    const master = generateKey();
+    const keys = { sk: bytesToHex(master.secretKey), pk: master.publicKey };
     localStorage.setItem(KEYS_STORE, JSON.stringify(keys));
     return keys;
   } catch (error) {
@@ -48,31 +41,22 @@ function saveTitles(titles) {
   }
 }
 
-function titlePaperwork(keys, name) {
-  const body = recordBody({
-    dealId: crypto.randomUUID(),
-    vendor: keys.originPk, // the origin seat signs the first line
-    buyer: keys.ownerPk, // the owner seat holds possession
-    title: name,
-    claim: 'first owner',
-    currency: 'deal',
-    amount: '',
-    at: Date.now(),
-  });
-  const issued = signRecord(hexToBytes(keys.originSk), body);
-  return coSignRecord(issued, hexToBytes(keys.ownerSk));
-}
-
 export default function App() {
   const [keys] = useState(loadKeys);
   const [titles, setTitles] = useState(loadTitles);
   const [name, setName] = useState('');
+  const [sellFor, setSellFor] = useState(null);
+  const [buyerCode, setBuyerCode] = useState('');
+  const [sellCode, setSellCode] = useState('');
+  const [receiveCode, setReceiveCode] = useState('');
+  const [receiveError, setReceiveError] = useState('');
+  const [flash, setFlash] = useState('');
 
   useEffect(() => {
     // The one item everyone already owns: the phone itself is this
-    // device's first title (round-5 anchor-item decision).
+    // device's first title (the anchor-item decision).
     if (keys && loadTitles().length === 0) {
-      const phone = titlePaperwork(keys, 'This phone');
+      const phone = mintTitle(keys, 'This phone');
       setTitles([phone]);
       saveTitles([phone]);
     }
@@ -82,20 +66,58 @@ export default function App() {
     return (
       <main className="screen">
         <h1>Deal</h1>
-        <p role="alert">Storage is off, so titles have nowhere to live. Try a private-data-friendly browser.</p>
+        <p role="alert">Storage is off, so titles have nowhere to live. Try a browser that keeps private data.</p>
       </main>
     );
   }
+
+  const update = (next) => {
+    setTitles(next);
+    saveTitles(next);
+  };
 
   const mint = (event) => {
     event.preventDefault();
     const clean = name.trim();
     if (!clean) return;
-    const signed = titlePaperwork(keys, clean);
-    const next = [signed, ...titles];
-    setTitles(next);
-    saveTitles(next);
+    update([mintTitle(keys, clean), ...titles]);
     setName('');
+  };
+
+  const showCode = (values) => {
+    setFlash('Code copied under it. Hand it over.');
+    navigator.clipboard?.writeText(values).catch(() => {});
+  };
+
+  const sell = (title) => {
+    setSellCode('');
+    setBuyerCode('');
+    setSellFor(title.name);
+  };
+
+  const makeSell = (event) => {
+    event.preventDefault();
+    const title = titles.find((row) => row.name === sellFor);
+    const buyer = receivePublicFromCode(buyerCode);
+    if (!title || !buyer) return;
+    const bundle = sellTitle(keys, title, buyer);
+    update(titles.map((row) => (row === title ? { ...row, soldTo: buyer } : row)));
+    const code = encodeCode(bundle);
+    setSellCode(code);
+    showCode(code);
+  };
+
+  const receive = (event) => {
+    event.preventDefault();
+    setReceiveError('');
+    try {
+      const bought = receiveTitle(keys, decodeCode(receiveCode));
+      update([bought, ...titles.filter((row) => row.itemId !== bought.itemId)]);
+      setReceiveCode('');
+      setFlash('Title received and countersigned. Real owner.');
+    } catch (error) {
+      setReceiveError(error.message);
+    }
   };
 
   return (
@@ -103,6 +125,10 @@ export default function App() {
       <header className="header">
         <h1>Deal</h1>
         <p className="tagline">A car title for everything, moved by tapping two phones.</p>
+        <p className="fact">
+          Your tap code {flash && <span className="flash"> · {flash}</span>}
+        </p>
+        <Textarea readOnly code={keys.pk} onCopy={() => showCode(keys.pk)} rows={2} />
       </header>
 
       <form className="mint" onSubmit={mint}>
@@ -117,20 +143,87 @@ export default function App() {
       </form>
 
       <section className="wall" aria-label="Title wall">
-        {titles.map((title) => (
-          <article key={title.hash} className="card">
-            <h2>{title.body.title}</h2>
-            <p className="fact verified">Real owner{verifyRecord(title) ? ' ✓' : ' — paperwork does not check'}</p>
-            <p className="fact">First recorded {new Date(title.body.at).toLocaleDateString()}</p>
-            <p className="fact">History: 1 line, clean</p>
-            <p className="id">{title.hash.slice(0, 16)}</p>
-          </article>
-        ))}
+        {titles.map((title) => {
+          const state = titleOwner(title);
+          const mine = titleMine(keys, title);
+          return (
+            <article key={`${title.name}-${title.itemId}`} className="card">
+              <h2>{title.name}</h2>
+              {title.soldTo ? (
+                <>
+                  <p className="fact">Sold — the paper moved on. History keeps the line.</p>
+                  <p className="fact">History: {title.hops.length + 1} lines, clean</p>
+                </>
+              ) : state.ok && mine.mine ? (
+                <>
+                  <p className="fact verified">Real owner ✓</p>
+                  <p className="fact">History: {title.hops.length} {title.hops.length === 1 ? 'line' : 'lines'}, clean</p>
+                  <button type="button" className="ghost" onClick={() => sell(title)}>Sell → tap paper</button>
+                </>
+              ) : state.ok ? (
+                <p className="fact">Held by someone else — the history stays readable here</p>
+              ) : (
+                <p className="fact error">Paperwork does not check ({state.reason})</p>
+              )}
+            </article>
+          );
+        })}
+      </section>
+
+      {sellFor && (
+        <section className="panel" aria-label="Sell">
+          <h3>Sell “{sellFor}”</h3>
+          <p className="fact">Paste the buyer's tap code:</p>
+          <form onSubmit={makeSell}>
+            <Textarea value={buyerCode} onChange={setBuyerCode} rows={2} />
+            <button type="submit" disabled={!buyerCode.trim()}>Make the sell paper</button>
+          </form>
+          {sellCode && (
+            <>
+              <p className="fact">Sell paper ready — the buyer pastes this:</p>
+              <Textarea readOnly code={sellCode} onCopy={() => showCode(sellCode)} rows={6} />
+            </>
+          )}
+          <button type="button" className="ghost" onClick={() => setSellFor(null)}>Done</button>
+        </section>
+      )}
+
+      <section className="panel" aria-label="Receive">
+        <h3>Receive a title</h3>
+        <form onSubmit={receive}>
+          <Textarea value={receiveCode} onChange={setReceiveCode} rows={6} placeholder="Paste the sell paper" />
+          <button type="submit" disabled={!receiveCode.trim()}>Tap in and own it</button>
+        </form>
+        {receiveError && <p className="error" role="alert">{receiveError}</p>}
       </section>
 
       <footer className="foot">
-        <p>Early build. Transfers between two phones arrive next.</p>
+        <p>Early build. Tap codes ride copy-paste today; NFC and QR replace the paste next.</p>
       </footer>
     </main>
   );
+}
+
+function Textarea({ value, onChange, code, onCopy, rows, readOnly, placeholder }) {
+  const text = value ?? code ?? '';
+  return (
+    <div className="code-field">
+      <textarea
+        value={text}
+        onChange={(event) => onChange?.(event.target.value)}
+        readOnly={readOnly}
+        rows={rows || 3}
+        placeholder={placeholder}
+        aria-label={placeholder || 'Code'}
+      />
+      {onCopy && <button type="button" className="ghost" onClick={onCopy}>Copy</button>}
+    </div>
+  );
+}
+
+// A tap code on the buyer side is just their public key — the engine's own
+// hex. The paste works across any messenger; NFC/QR carries the same bytes.
+function receivePublicFromCode(code) {
+  const hex = String(code || '').trim().toLowerCase();
+  return /^[0-9a-f]{64}$/.test(hex) ? hex : '';
 }
