@@ -17,6 +17,7 @@ import {
   titleOwner,
 } from './lib/paper.js';
 import { buildQr } from './lib/qr.js';
+import { nfcSupported, startNfcRead, writeNfc } from './lib/nfc.js';
 import {
   addressFromForm,
   addressMisses,
@@ -92,6 +93,8 @@ export default function App() {
   const [deliveryOpen, setDeliveryOpen] = useState(false);
   const [deliveryForm, setDeliveryForm] = useState(emptyDelivery);
   const [deliveryFails, setDeliveryFails] = useState([]);
+  const canNfc = nfcSupported();
+  const [nfcTalk, setNfcTalk] = useState('');
   const [flash, setFlash] = useState('');
   const [backupOpen, setBackupOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
@@ -219,6 +222,30 @@ export default function App() {
     setFlash('The address is off the tap code.');
   };
 
+  // Push a paper over the tap: one button, one write of the same bytes
+  // the textarea already shows. The words come back as the flash line.
+  const pushPaper = async (paper) => {
+    try {
+      await writeNfc(paper);
+      setNfcTalk('Pushed. Hold the phones together until they take it.');
+    } catch (error) {
+      setNfcTalk(error.message);
+    }
+  };
+
+  // Catch a paper from the tap into the Receive box — the SAME box the
+  // paste fills, so every check it runs is the check it always ran.
+  const catchPaper = () => {
+    setNfcTalk('');
+    startNfcRead({
+      onCode: (code) => {
+        setReceiveCode(code);
+        setNfcTalk('Caught. Read it, then tap it in.');
+      },
+      onFail: (words) => setNfcTalk(words),
+    });
+  };
+
   const restore = (event) => {
     event.preventDefault();
     setRestoreError('');
@@ -322,6 +349,11 @@ export default function App() {
               <p className="fact">Sell paper ready — the buyer pastes this:</p>
               <Textarea readOnly code={sellCode} onCopy={() => showCode(sellCode)} rows={6} />
               <Qr text={sellCode} />
+              <p className="fact backup-row">
+                <button type="button" className="ghost" onClick={() => pushPaper(sellCode)}>Push it over</button>
+              </p>
+              {!canNfc && <p className="fact">This phone cannot tap NFC — the copy-paste walk still carries it.</p>}
+              {nfcTalk && <p className="flash">{nfcTalk}<br /></p>}
             </>
           )}
           <button type="button" className="ghost" onClick={() => setSellFor(null)}>Done</button>
@@ -334,7 +366,10 @@ export default function App() {
           <p className="fact">Show paper ready — the buyer pastes it and reads the title. It owns nothing, buys nothing.</p>
           <Textarea readOnly code={showPaper} onCopy={() => showCode(showPaper)} rows={8} />
           <Qr text={showPaper} />
-          <button type="button" className="ghost" onClick={() => setShowFor(null)}>Done</button>
+          <p className="fact backup-row">
+            <button type="button" className="ghost" onClick={() => pushPaper(showPaper)}>Push it over</button>
+            <button type="button" className="ghost" onClick={() => setShowFor(null)}>Done</button>
+          </p>
         </section>
       )}
 
@@ -363,11 +398,18 @@ export default function App() {
           <Textarea value={receiveCode} onChange={setReceiveCode} rows={6} placeholder="Paste the sell paper" />
           <button type="submit" disabled={!receiveCode.trim()}>Tap in and own it</button>
         </form>
+        {canNfc && (
+          <p className="fact backup-row">
+            <button type="button" className="ghost" onClick={catchPaper}>Or catch it from the seller's tap</button>
+          </p>
+        )}
+        {!canNfc && <p className="fact">This phone cannot tap NFC — the copy-paste walk still carries it.</p>}
+        {nfcTalk && <p className="flash">{nfcTalk}<br /></p>}
         {receiveError && <p className="error" role="alert">{receiveError}</p>}
       </section>
 
       <footer className="foot">
-        <p>Early build. Tap codes ride copy-paste and the camera today; NFC replaces the walk next.</p>
+        <p>Early build. Tap codes ride copy-paste, the camera and NFC today; a paper never changes shape for the transport.</p>
         <p className="backup-row">
           <button type="button" className="ghost" onClick={() => { setBackupOpen(!backupOpen); setRestoreOpen(false); setDeliveryOpen(false); }}>Owner's code</button>
           <button type="button" className="ghost" onClick={() => { setRestoreOpen(!restoreOpen); setBackupOpen(false); setDeliveryOpen(false); }}>Say it back to this phone</button>
