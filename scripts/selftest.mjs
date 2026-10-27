@@ -2,10 +2,21 @@
 // library, on two simulated phones. Mint → sell → receive → re-sell, plus
 // the refusals that must refuse. Exit 1 on any failure.
 import assert from 'node:assert/strict';
-import { generateKey } from 'deal-engine/src/keys.js';
+import { generateKey, keyPairFromSeed } from 'deal-engine/src/keys.js';
 import { bytesToHex } from 'deal-engine/src/canonical.js';
-import { decodeCode, encodeCode, mintTitle, receiveTitle, sellTitle, titleMine, titleOwner } from '../src/lib/paper.js';
-import { keyPairFromSeed } from 'deal-engine/src/keys.js';
+import {
+  decodeCode,
+  encodeCode,
+  identityCodeOf,
+  keysFromIdentityCode,
+  mintTitle,
+  papersCodeOf,
+  receiveTitle,
+  sellTitle,
+  titleMine,
+  titleOwner,
+  titlesFromPapersCode,
+} from '../src/lib/paper.js';
 
 const phone = (seedHex) => {
   const master = keyPairFromSeed(Buffer.from(seedHex, 'hex'));
@@ -59,10 +70,18 @@ let received = false;
 try { receiveTitle(bob, decodeCode(forgedPaper)); received = true; } catch { received = false; }
 assert.equal(received, false, 'a forged flip cannot tap in');
 
-// 7. an empty code cannot adopt anything
+// 7. an empty or corrupt code cannot adopt anything
 assert.throws(() => receiveTitle(bob, decodeCode(encodeCode({ hops: [null] }))));
-assert.throws(() => replaceBad());
+assert.throws(() => decodeCode(btoa('not json')));
 
-function replaceBad() { return decodeCode(btoa('not json')); }
+// 8. key loss: the owner's code + papers bring mallory onto a new device
+const restoredKeys = keysFromIdentityCode(identityCodeOf(mallory));
+assert.equal(restoredKeys.sk, mallory.sk, 'restore is the identity');
+assert.equal(restoredKeys.pk, mallory.pk, 'restore derives the same public key');
+const restoredTitle = titlesFromPapersCode(papersCodeOf([resold]))[0];
+assert.equal(titleOwner(restoredTitle).owner, mallory.pk, 'restored papers still name mallory');
+assert.equal(titleMine(restoredKeys, restoredTitle).mine, true, 'a restored owner really owns again');
+assert.equal(resold.hops.length, 3, 'history rides the papers, unbroken');
+assert.throws(() => keysFromIdentityCode('1234'));
 
-console.log('selftest: 7/7 — mint, tap, resale, custody refusals all hold');
+console.log('selftest: 8/8 — mint, tap, resale, transfers, restore all hold');

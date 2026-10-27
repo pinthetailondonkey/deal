@@ -1,5 +1,5 @@
-import { canonicalBytes, hexToBytes } from 'deal-engine/src/canonical.js';
-import { sign, verify } from 'deal-engine/src/keys.js';
+import { bytesToHex, canonicalBytes, hexToBytes } from 'deal-engine/src/canonical.js';
+import { publicKeyOf, sign, verify } from 'deal-engine/src/keys.js';
 import {
   itemKeyPair,
   HOP_TAG,
@@ -112,3 +112,31 @@ export function bundleHistory(title) {
 }
 
 export { hopHash, verifyHop, verifyHopChain };
+
+// The owner's code is the identity itself in hex: say it back to a phone
+// and that phone becomes the owner again. The papers ride separately,
+// because a restored identity without its paperwork still needs the hop
+// chains — the chains are the history.
+export function identityCodeOf(keys) {
+  return keys.sk;
+}
+
+export function keysFromIdentityCode(code) {
+  const hex = String(code || '').trim().toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(hex)) {
+    throw new Error('That does not read as an owner code (64 hex characters).');
+  }
+  return { sk: hex, pk: publicKeyOf(hexToBytes(hex)) };
+}
+
+export function papersCodeOf(titles) {
+  return encodeCode({ papers: 0, titles });
+}
+
+export function titlesFromPapersCode(code) {
+  const bundle = decodeCode(code);
+  if (bundle?.papers !== 0 || !Array.isArray(bundle.titles)) {
+    throw new Error('That is not a Deal papers backup.');
+  }
+  return bundle.titles;
+}

@@ -1,7 +1,19 @@
 import { useEffect, useState } from 'react';
 import { bytesToHex, hexToBytes } from 'deal-engine/src/canonical.js';
-import { generateKey, publicKeyOf } from 'deal-engine/src/keys.js';
-import { decodeCode, encodeCode, mintTitle, receiveTitle, sellTitle, titleMine, titleOwner } from './lib/paper.js';
+import { generateKey } from 'deal-engine/src/keys.js';
+import {
+  decodeCode,
+  encodeCode,
+  identityCodeOf,
+  keysFromIdentityCode,
+  mintTitle,
+  papersCodeOf,
+  receiveTitle,
+  sellTitle,
+  titlesFromPapersCode,
+  titleMine,
+  titleOwner,
+} from './lib/paper.js';
 
 // Deal v0 — the locked human surface: every title reads "Real owner,
 // clean history." One master key lives on this device; the engine derives
@@ -51,14 +63,23 @@ export default function App() {
   const [receiveCode, setReceiveCode] = useState('');
   const [receiveError, setReceiveError] = useState('');
   const [flash, setFlash] = useState('');
+  const [backupOpen, setBackupOpen] = useState(false);
+  const [restoreOpen, setRestoreOpen] = useState(false);
+  const [restoreId, setRestoreId] = useState('');
+  const [restorePapers, setRestorePapers] = useState('');
+  const [restoreError, setRestoreError] = useState('');
 
   useEffect(() => {
     // The one item everyone already owns: the phone itself is this
-    // device's first title (the anchor-item decision).
-    if (keys && loadTitles().length === 0) {
+    // device's first title (the anchor-item decision). Never after a
+    // restore — the owner's code brings their identity, and their papers
+    // bring the history; minting on top of a restored owner would write a
+    // fresh life over an ongoing one.
+    if (keys && loadTitles().length === 0 && !localStorage.getItem(KEYS_STORE + '.restored')) {
       const phone = mintTitle(keys, 'This phone');
       setTitles([phone]);
       saveTitles([phone]);
+      try { localStorage.setItem(KEYS_STORE + '.restored', '1'); } catch { /* flags are a convenience, not the record */ }
     }
   }, [keys]);
 
@@ -117,6 +138,26 @@ export default function App() {
       setFlash('Title received and countersigned. Real owner.');
     } catch (error) {
       setReceiveError(error.message);
+    }
+  };
+
+  const restore = (event) => {
+    event.preventDefault();
+    setRestoreError('');
+    try {
+      const restoredKeys = keysFromIdentityCode(restoreId);
+      const restoredTitles = restorePapers.trim() ? titlesFromPapersCode(restorePapers) : [];
+      try {
+        localStorage.setItem(KEYS_STORE, JSON.stringify(restoredKeys));
+        localStorage.setItem(KEYS_STORE + '.restored', '1');
+        localStorage.setItem(TITLES_STORE, JSON.stringify(restoredTitles));
+      } catch (error) {
+        console.error('[deal] Restored identity could not be written:', error);
+      }
+      setTitles(restoredTitles);
+      window.location.reload();
+    } catch (error) {
+      setRestoreError(error.message);
     }
   };
 
@@ -199,6 +240,32 @@ export default function App() {
 
       <footer className="foot">
         <p>Early build. Tap codes ride copy-paste today; NFC and QR replace the paste next.</p>
+        <p className="backup-row">
+          <button type="button" className="ghost" onClick={() => { setBackupOpen(!backupOpen); setRestoreOpen(false); }}>Owner's code</button>
+          <button type="button" className="ghost" onClick={() => { setRestoreOpen(!restoreOpen); setBackupOpen(false); }}>Say it back to this phone</button>
+        </p>
+        {backupOpen && (
+          <section className="panel" aria-label="Owner's code">
+            <h3>Your owner's code</h3>
+            <p className="fact">This code IS you — the only proof anyone needs that a title's history is your history. Write it somewhere a stolen phone can't follow.</p>
+            <Textarea readOnly code={identityCodeOf(keys)} onCopy={() => showCode(identityCodeOf(keys))} rows={2} />
+            <p className="fact">Your papers (the titles and their chains) save separately:</p>
+            <Textarea readOnly code={papersCodeOf(titles)} onCopy={() => showCode(papersCodeOf(titles))} rows={4} />
+          </section>
+        )}
+        {restoreOpen && (
+          <section className="panel" aria-label="Restore">
+            <h3>Say the code back to this phone</h3>
+            <p className="fact">Owner's code:</p>
+            <form onSubmit={restore}>
+              <Textarea value={restoreId} onChange={setRestoreId} rows={2} placeholder="Paste the owner's code" />
+              <p className="fact">And the papers, if you carry them:</p>
+              <Textarea value={restorePapers} onChange={setRestorePapers} rows={4} placeholder="Paste the papers backup (optional)" />
+              <button type="submit" disabled={!restoreId.trim()}>Become this owner here</button>
+            </form>
+            {restoreError && <p className="error" role="alert">{restoreError}</p>}
+          </section>
+        )}
       </footer>
     </main>
   );

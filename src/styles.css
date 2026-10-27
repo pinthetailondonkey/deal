@@ -145,6 +145,12 @@ body {
   color: var(--good);
 }
 
+.backup-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .foot {
   margin-top: 28px;
   color: var(--ink-mute);
