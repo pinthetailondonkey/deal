@@ -75,14 +75,18 @@ change").
   arbiterKeys }]`. The arbiterKeys array is the ONE set the verifying
   door accepted, stored beside the resolution, never self-declared —
   the dispute.js round-three rule, carried over.
-- Arbiter leg, v0 scope: Deal has no arbiter directory. A cleared or
-  overturned verdict arrives as a PASTED resolution code from the
-  arbiter — the same copy-paste walk as every other paper. Screen: a
-  "Paste the arbiter's word" box on the flagged card; verify against
-  the named arbiter key; headline updates. What an arbiter IS in Deal
-  (who gets to clear a theft) stays a founder call — round-5 hole #4's
-  police-report leg lives outside this code, as the engine comment
-  says.
+- FOUNDER RULING (2026-10-28): **ship now, arbiter later.** v0 ships
+  the "Stand it down" leg ONLY — filer-withdraw-only clearance,
+  exactly what the built engine code does. The pasted-arbiter leg
+  (below) is a LATER VERSION; no arbiter directory blocks the ship.
+- Arbiter leg (later version, build when ruled in): Deal has no
+  arbiter directory. A cleared or overturned verdict arrives as a
+  PASTED resolution code from the arbiter — the same copy-paste walk
+  as every other paper. Screen: a "Paste the arbiter's word" box on
+  the flagged card; verify against the named arbiter key; headline
+  updates. What an arbiter IS in Deal (who gets to clear a theft)
+  stays open behind that gate — round-5 hole #4's police-report leg
+  lives outside this code, as the engine comment says.
 
 ## What a finding could change (adaptation notes)
 
@@ -147,9 +151,12 @@ change").
    renders; a forged flag refuses in Look; receive refuses an open
    flag. Gates green, push.
 
-Copy list (verbatim, app voice): "Flag stolen" · "Say what happened." ·
+Copy list (verbatim, app voice) — v0, ships with the withdraw-only
+ruling: "Flag stolen" · "Say what happened." ·
 "Flagged stolen — you said so on <date>." · "Flagged stolen — do not
 buy." · "A stolen flag was filed on <date> and withdrawn on <date>." ·
-"…was cleared on <date>." · "…was overturned on <date>." · "This paper
-is flagged stolen. It cannot come to you until the flag is stood down." ·
-"Stand it down" · "Paste the arbiter's word".
+"This paper is flagged stolen. It cannot come to you until the flag is
+stood down." · "Stand it down".
+Later-version copy (fires only when the arbiter leg is ruled in):
+"…was cleared on <date>." · "…was overturned on <date>." ·
+"Paste the arbiter's word".

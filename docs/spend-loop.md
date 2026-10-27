@@ -109,3 +109,31 @@ itself.
    line (their words, their numbers) vs Deal-computed totals per rule.
    Deal's position: the service's words; two "10% s" on one screen is
    how lies start.
+
+## The rulings (2026-10-28, all seven, FINAL — relayed by conductor)
+
+Every card above is answered; nothing here is a proposal anymore.
+
+1. **Processor: shortlist path.** Deal researches real processors with
+   terms on paper; the founder picks from the shortlist and can veto
+   any name. Lane proposes, founder signs.
+2. **Legal entity: the processor's own terms decide.** No early
+   filings, no guessed jurisdiction — the processor's requirements
+   pick this for us in practice.
+3. **Money words: VERBATIM.** The card service's states are repeated
+   in their own words; Deal never owns synonyms for card states;
+   "confirmed" means only the watcher, on-chain. Locked as this doc's
+   position said. (Part of the recurring-fight trio that went
+   verbatim 3-for-3.)
+4. **Clawback: FREEZE.** A charged-back top-up locks the wallet until
+   topped back to true. A negative balance will never appear on
+   screen.
+5. **Debt line: balance card, first place, plain words** — under the
+   freeze treatment above.
+6. **Fees: the card service's own fee line.** Their words, their
+   numbers; no Deal-computed totals.
+7. **Theft clearing: ship now, arbiter later.** v0 ships
+   filer-withdraw-only clearance (what the built engine code does);
+   named-arbiter clearance/overturn can land in a later version; no
+   arbiter directory blocks the ship. (Folded into
+   docs/stolen-flags.md.)
