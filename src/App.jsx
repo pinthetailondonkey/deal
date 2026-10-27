@@ -17,6 +17,13 @@ import {
   titleOwner,
 } from './lib/paper.js';
 import { buildQr } from './lib/qr.js';
+import {
+  addressFromForm,
+  addressMisses,
+  addressWords,
+  deliveryMisses,
+  emptyDelivery,
+} from './lib/deliveryAddress.js';
 
 // Deal v0 — the locked human surface: every title reads "Real owner,
 // clean history." One master key lives on this device; the engine derives
@@ -25,6 +32,7 @@ import { buildQr } from './lib/qr.js';
 // copy-paste codes carry; the paper does not change shape.
 const KEYS_STORE = 'deal.identity.v0';
 const TITLES_STORE = 'deal.titles.v0';
+const DELIVERY_STORE = 'deal.delivery.v0';
 
 function loadKeys() {
   try {
@@ -45,6 +53,16 @@ function loadTitles() {
     return JSON.parse(localStorage.getItem(TITLES_STORE) || '[]');
   } catch {
     return [];
+  }
+}
+
+function loadDelivery() {
+  try {
+    const raw = localStorage.getItem(DELIVERY_STORE);
+    const delivery = raw ? JSON.parse(raw) : null;
+    return delivery && !Array.isArray(delivery) ? delivery : null;
+  } catch {
+    return null;
   }
 }
 
@@ -70,6 +88,10 @@ export default function App() {
   const [lookResult, setLookResult] = useState(null);
   const [showFor, setShowFor] = useState(null);
   const [showPaper, setShowPaper] = useState('');
+  const [delivery, setDelivery] = useState(loadDelivery);
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const [deliveryForm, setDeliveryForm] = useState(emptyDelivery);
+  const [deliveryFails, setDeliveryFails] = useState([]);
   const [flash, setFlash] = useState('');
   const [backupOpen, setBackupOpen] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
@@ -129,8 +151,8 @@ export default function App() {
     const title = titles.find((row) => row.name === sellFor);
     const buyer = receivePublicFromCode(buyerCode);
     if (!title || !buyer) return;
-    const bundle = sellTitle(keys, title, buyer);
-    update(titles.map((row) => (row === title ? { ...row, soldTo: buyer } : row)));
+    const bundle = sellTitle(keys, title, buyer.pk);
+    update(titles.map((row) => (row === title ? { ...row, soldTo: buyer.pk } : row)));
     const code = encodeCode(bundle);
     setSellCode(code);
     showCode(code);
@@ -164,6 +186,39 @@ export default function App() {
     setShowFor(title.name);
   };
 
+  // The tap code a seller reads: their key, and — only when the buyer put
+  // an address on this device — the plain delivery words riding beside it.
+  // Absent stays absent until the buyer saves one, present-or-absent honest.
+  const tapCode = delivery
+    ? encodeCode({ tap: 1, pk: keys.pk, delivery })
+    : keys.pk;
+
+  const saveDelivery = (event) => {
+    event.preventDefault();
+    const misses = deliveryMisses(deliveryForm);
+    setDeliveryFails(misses);
+    if (misses.length > 0) return;
+    const address = addressFromForm(deliveryForm);
+    try {
+      localStorage.setItem(DELIVERY_STORE, JSON.stringify(address));
+    } catch (error) {
+      console.error('[deal] Delivery address could not be saved:', error);
+    }
+    setDelivery(address);
+    setFlash('Your tap code carries the address now.');
+  };
+
+  const removeDelivery = () => {
+    try {
+      localStorage.removeItem(DELIVERY_STORE);
+    } catch (error) {
+      console.error('[deal] Delivery address could not be removed:', error);
+    }
+    setDelivery(null);
+    setDeliveryFails([]);
+    setFlash('The address is off the tap code.');
+  };
+
   const restore = (event) => {
     event.preventDefault();
     setRestoreError('');
@@ -184,6 +239,13 @@ export default function App() {
     }
   };
 
+  // What the pasted buyer code carries, read live while the seller types:
+  // their key always, the delivery words when the buyer put one on.
+  const buyerRead = useMemo(
+    () => (buyerCode.trim() ? receivePublicFromCode(buyerCode) : null),
+    [buyerCode],
+  );
+
   return (
     <main className="screen">
       <header className="header">
@@ -192,8 +254,8 @@ export default function App() {
         <p className="fact">
           Your tap code {flash && <span className="flash"> · {flash}</span>}
         </p>
-        <Textarea readOnly code={keys.pk} onCopy={() => showCode(keys.pk)} rows={2} />
-        <Qr text={keys.pk} />
+        <Textarea readOnly code={tapCode} onCopy={() => showCode(tapCode)} rows={2} />
+        <Qr text={tapCode} />
       </header>
 
       <form className="mint" onSubmit={mint}>
@@ -244,6 +306,17 @@ export default function App() {
             <Textarea value={buyerCode} onChange={setBuyerCode} rows={2} />
             <button type="submit" disabled={!buyerCode.trim()}>Make the sell paper</button>
           </form>
+          {buyerRead?.delivery ? (
+            <>
+              <p className="fact verified">Ship to:</p>
+              {addressWords(buyerRead.delivery).map((line) => <p className="fact" key={line}>{line}</p>)}
+              {addressMisses(buyerRead.delivery).length > 0 && (
+                <p className="fact error">This address does not check out — confirm it with the buyer.</p>
+              )}
+            </>
+          ) : buyerRead && (
+            <p className="fact">No delivery address was handed over. Ask for it if this must ship.</p>
+          )}
           {sellCode && (
             <>
               <p className="fact">Sell paper ready — the buyer pastes this:</p>
@@ -296,9 +369,39 @@ export default function App() {
       <footer className="foot">
         <p>Early build. Tap codes ride copy-paste and the camera today; NFC replaces the walk next.</p>
         <p className="backup-row">
-          <button type="button" className="ghost" onClick={() => { setBackupOpen(!backupOpen); setRestoreOpen(false); }}>Owner's code</button>
-          <button type="button" className="ghost" onClick={() => { setRestoreOpen(!restoreOpen); setBackupOpen(false); }}>Say it back to this phone</button>
+          <button type="button" className="ghost" onClick={() => { setBackupOpen(!backupOpen); setRestoreOpen(false); setDeliveryOpen(false); }}>Owner's code</button>
+          <button type="button" className="ghost" onClick={() => { setRestoreOpen(!restoreOpen); setBackupOpen(false); setDeliveryOpen(false); }}>Say it back to this phone</button>
+          <button type="button" className="ghost" onClick={() => { setDeliveryOpen(!deliveryOpen); setBackupOpen(false); setRestoreOpen(false); setDeliveryForm(delivery ? { ...emptyDelivery(), street: (delivery.lines && delivery.lines[0]) || '', name: delivery.name || '', city: delivery.city || '', state: delivery.region || '', postalCode: delivery.postal || '', country: delivery.country || 'US' } : emptyDelivery()); }}>Delivery address</button>
         </p>
+        {deliveryOpen && (
+          <section className="panel" aria-label="Delivery address">
+            <h3>Delivery address</h3>
+            <p className="fact">Optional — only for things that must physically ship. The words ride your tap code, plain; nothing here talks to the internet.</p>
+            <form onSubmit={saveDelivery}>
+              {DELIVERY_FIELDS.map((field) => (
+                <input
+                  key={field.key}
+                  value={deliveryForm[field.key]}
+                  onChange={(event) => setDeliveryForm({ ...deliveryForm, [field.key]: event.target.value })}
+                  placeholder={field.placeholder}
+                  aria-label={field.label}
+                  maxLength={field.key === 'street' ? 60 : 40}
+                />
+              ))}
+              <button type="submit">{delivery ? 'Rewrite the address on my tap code' : 'Put it on my tap code'}</button>
+            </form>
+            {deliveryFails.map((miss) => (
+              <p className="fact error" key={miss.field} role="alert">{miss.message}</p>
+            ))}
+            {delivery && (
+              <>
+                <p className="fact verified">The tap code carries this address now:</p>
+                {addressWords(delivery).map((line) => <p className="fact" key={line}>{line}</p>)}
+                <button type="button" className="ghost" onClick={removeDelivery}>Take it back off</button>
+              </>
+            )}
+          </section>
+        )}
         {backupOpen && (
           <section className="panel" aria-label="Owner's code">
             <h3>Your owner's code</h3>
@@ -373,9 +476,32 @@ function Textarea({ value, onChange, code, onCopy, rows, readOnly, placeholder }
   );
 }
 
-// A tap code on the buyer side is just their public key — the engine's own
-// hex. The paste works across any messenger; NFC/QR carries the same bytes.
+// The delivery form's six fields, Money Moves' words — nothing clever,
+// nothing remote, plain misses under the fields.
+const DELIVERY_FIELDS = [
+  { key: 'name', placeholder: 'Who is this going to?', label: 'Name' },
+  { key: 'street', placeholder: 'Street', label: 'Street' },
+  { key: 'city', placeholder: 'City', label: 'City' },
+  { key: 'state', placeholder: 'State', label: 'State' },
+  { key: 'postalCode', placeholder: 'Postal code', label: 'Postal code' },
+  { key: 'country', placeholder: 'Country', label: 'Country' },
+];
+
+// A tap code on the buyer side is their public key — the engine's own hex —
+// or, when the buyer put a delivery address on this device, the same key
+// riding a small envelope. The paste works across any messenger; NFC and QR
+// carry the same bytes.
 function receivePublicFromCode(code) {
-  const hex = String(code || '').trim().toLowerCase();
-  return /^[0-9a-f]{64}$/.test(hex) ? hex : '';
+  const text = String(code || '').trim().toLowerCase();
+  if (/^[0-9a-f]{64}$/.test(text)) return { pk: text, delivery: null };
+  try {
+    const bundle = decodeCode(text);
+    const pk = String(bundle?.pk || '').toLowerCase();
+    if (/^[0-9a-f]{64}$/.test(pk)) {
+      return { pk, delivery: bundle.delivery || null };
+    }
+  } catch {
+    // not an envelope; the plain key check above already had its chance
+  }
+  return null;
 }

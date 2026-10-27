@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test node_modules/deal-engine/test/ && node --test src/lib/noNetwork.test.js src/lib/qr.test.js"
+    "test": "node --test node_modules/deal-engine/test/ && node --test src/lib/noNetwork.test.js src/lib/qr.test.js src/lib/deliveryAddress.test.js"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
